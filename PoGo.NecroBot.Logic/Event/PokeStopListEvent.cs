@@ -1,13 +1,13 @@
-﻿using POGOProtos.Map.Fort;
-using System;
+﻿#region using directives
+
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using POGOProtos.Map.Fort;
+
+#endregion
 
 namespace PoGo.NecroBot.Logic.Event
 {
-    class PokeStopListEvent : IEvent
+    public class PokeStopListEvent : IEvent
     {
         public List<FortData> Forts;
     }

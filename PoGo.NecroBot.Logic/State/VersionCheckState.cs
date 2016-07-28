@@ -8,6 +8,7 @@ using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using PoGo.NecroBot.Logic.Event;
 using PoGo.NecroBot.Logic.Logging;
 
 #endregion
@@ -16,63 +17,90 @@ namespace PoGo.NecroBot.Logic.State
 {
     public class VersionCheckState : IState
     {
-        public static string VersionUri =
+        public const string VersionUri =
             "https://raw.githubusercontent.com/NecronomiconCoding/NecroBot/master/PoGo.NecroBot.Logic/Properties/AssemblyInfo.cs";
 
-        public static string LatestReleaseApi =
+        public const string LatestReleaseApi =
             "https://api.github.com/repos/NecronomiconCoding/NecroBot/releases/latest";
+
+        private const string LatestRelease =
+            "https://github.com/NecronomiconCoding/NecroBot/releases";
 
         public static Version RemoteVersion;
 
-        public async Task<IState> Execute(Context ctx, StateMachine machine)
+        public async Task<IState> Execute(ISession session)
         {
-            bool AutoUpdate = ctx.LogicSettings.AutoUpdate;
-            CleanupOldFiles();
-            var needupdate = IsLatest();
-            if (!needupdate || !AutoUpdate)
+            await CleanupOldFiles();
+            var autoUpdate = session.LogicSettings.AutoUpdate;
+            var needupdate =  IsLatest();
+            if (!needupdate || !autoUpdate)
             {
-                if (!AutoUpdate)
+                if (!needupdate)
                 {
-                    Logger.Write(
-                        "AutoUpdate is disabled. Get the latest release from:\n https://github.com/NecronomiconCoding/NecroBot/releases");
+                    session.EventDispatcher.Send(new UpdateEvent
+                    {
+                        Message =
+                            session.Translations.GetTranslation(Common.TranslationString.GotUpToDateVersion, RemoteVersion)
+                    });
+                    return new LoginState();
                 }
+                session.EventDispatcher.Send(new UpdateEvent
+                {
+                    Message = session.Translations.GetTranslation(Common.TranslationString.AutoUpdaterDisabled, LatestRelease)                  
+                });
+
                 return new LoginState();
             }
-
-            Logger.Write("AutoUpdate is enabled, please wait for the bot to begin updating.");
+            session.EventDispatcher.Send(new UpdateEvent {Message = session.Translations.GetTranslation(Common.TranslationString.DownloadingUpdate)});
+            var remoteReleaseUrl =
+            $"https://github.com/NecronomiconCoding/NecroBot/releases/download/v{RemoteVersion}/";
             const string zipName = "Release.zip";
-            var url = $"https://github.com/NecronomiconCoding/NecroBot/releases/download/v{RemoteVersion}/";
-            var downloadLink = url + zipName;
-            var baseDir = new DirectoryInfo(Directory.GetCurrentDirectory());
-            var downloadFilePath = baseDir + "\\" + zipName;
-            var tempPath = baseDir + "\\tmp";
-            var extractedDir = tempPath + "\\Release";
-            var destinationDir = baseDir + "\\";
+            var downloadLink = remoteReleaseUrl + zipName;
+            var baseDir = Directory.GetCurrentDirectory();
+            var downloadFilePath = Path.Combine(baseDir, zipName);
+            var tempPath = Path.Combine(baseDir, "tmp");
+            var extractedDir = Path.Combine(tempPath, "Release");
+            var destinationDir = baseDir + Path.DirectorySeparatorChar;
+            Console.WriteLine(downloadLink);
             if (!DownloadFile(downloadLink, downloadFilePath)) return new LoginState();
+            session.EventDispatcher.Send(new UpdateEvent {Message = session.Translations.GetTranslation(Common.TranslationString.FinishedDownloadingRelease)});
             if (!UnpackFile(downloadFilePath, tempPath)) return new LoginState();
+            session.EventDispatcher.Send(new UpdateEvent {Message = session.Translations.GetTranslation(Common.TranslationString.FinishedUnpackingFiles)});
+
             if (!MoveAllFiles(extractedDir, destinationDir)) return new LoginState();
-            Console.WriteLine("Update finished, restarting..");
+            session.EventDispatcher.Send(new UpdateEvent {Message = session.Translations.GetTranslation(Common.TranslationString.UpdateFinished)});
+
             Process.Start(Assembly.GetEntryAssembly().Location);
-            Environment.Exit(0);
+            Environment.Exit(-1);
             return null;
         }
 
-        public static void CleanupOldFiles()
+        public static async Task CleanupOldFiles()
         {
-            if (Directory.Exists(Directory.GetCurrentDirectory() + "\\tmp\\"))
-                Directory.Delete(Directory.GetCurrentDirectory() + "\\tmp\\", true);
+            var tmpDir = Path.Combine(Directory.GetCurrentDirectory(), "tmp");
+
+            if (Directory.Exists(tmpDir))
+            {
+                Directory.Delete(tmpDir, true);
+            }
+
             var di = new DirectoryInfo(Directory.GetCurrentDirectory());
-            var files = di.GetFiles("*.old");
+            var diRecurisve = di.GetDirectories();
+            var files = di.GetFiles("*.old", SearchOption.AllDirectories);
+
             foreach (var file in files)
+            {
                 try
                 {
-                    if (file.Name.Contains("vshost")) continue;
+                    if (file.Name.Contains("vshost"))
+                        continue;
                     File.Delete(file.FullName);
                 }
                 catch (Exception e)
                 {
                     Logger.Write(e.ToString());
                 }
+            }
         }
 
         public static bool DownloadFile(string url, string dest)
@@ -82,6 +110,7 @@ namespace PoGo.NecroBot.Logic.State
                 try
                 {
                     client.DownloadFile(url, dest);
+                    Console.WriteLine(dest);
                 }
                 catch
                 {
