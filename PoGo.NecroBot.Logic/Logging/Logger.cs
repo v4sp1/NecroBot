@@ -36,7 +36,8 @@ namespace PoGo.NecroBot.Logic.Logging
         {
             _logger = logger;
             _path = Path.Combine(Directory.GetCurrentDirectory(), subPath, "Logs");
-            Directory.CreateDirectory(_path);
+            if (!Directory.Exists(_path))
+                Directory.CreateDirectory(_path);
             Log($"Initializing Rocket logger at time {DateTime.Now}...");
         }
 

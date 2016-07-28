@@ -104,8 +104,8 @@ namespace PoGo.NecroBot.UI
 
             var subPath = "";
             var args = Environment.GetCommandLineArgs();
-            if (args.Length > 0)
-                subPath = args[0];
+            if (args.Length > 1)
+                subPath = args[1];
 
             Logger.SetLogger(new RichTextLogger(rtfLog, LogLevel.Info), subPath);
 
