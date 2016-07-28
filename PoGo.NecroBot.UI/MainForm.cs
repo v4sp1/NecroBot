@@ -79,6 +79,7 @@ namespace PoGo.NecroBot.UI
                 subPath = args[1];
 
             Logger.SetLogger(new RichTextLogger(rtfLog, LogLevel.Info), subPath);
+            webBrowser.DocumentText = Properties.Resources.map;
 
             var settings = GlobalSettings.Load(subPath);
 
