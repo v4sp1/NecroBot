@@ -84,11 +84,9 @@ namespace PoGo.NecroBot.UI
 
             if (settings == null)
             {
-                Logger.Write("This is your first start and the bot will use the default config!", LogLevel.Warning);
-                Logger.Write("Continue? (y/n)", LogLevel.Warning);
+                if (MessageBox.Show(this, "This is your first start and the bot will use the default config!", "NecroBot", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
+                    Environment.Exit(1);
 
-                if (!Console.ReadLine().ToUpper().Equals("Y"))
-                    return;
                 settings = GlobalSettings.Load(subPath);
             }
 
