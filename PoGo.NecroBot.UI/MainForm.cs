@@ -73,35 +73,6 @@ namespace PoGo.NecroBot.UI
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            //Logger.SetLogger(new RichTextLogger(rtfLog, LogLevel.Info));
-
-            //var machine = new StateMachine();
-            //var stats = new Statistics();
-            //// TODO: Only update the UI elements that need it (but need more fine-grained events than just DirtyEvent then)
-            //stats.DirtyEvent += () => stats_Dirty(stats);
-
-            //var aggregator = new StatisticsAggregator(stats);
-            //var listener = new EventListener();
-
-            //machine.EventListener += listener.Listen;
-            //machine.EventListener += aggregator.Listen;
-
-            //machine.SetFailureState(new LoginState());
-
-            //SettingsUtil.Load();
-
-            //var session = new Session(new ClientSettings(settings), new LogicSettings(settings));
-            //context.Client.Login.GoogleDeviceCodeEvent += LoginWithGoogle;
-
-            //webBrowser.DocumentText = Properties.Resources.map;
-
-            //machine.AsyncStart(new VersionCheckState(), context);
-
-
-
-
-
-
             var subPath = "";
             var args = Environment.GetCommandLineArgs();
             if (args.Length > 1)
@@ -141,7 +112,7 @@ namespace PoGo.NecroBot.UI
 
             var machine = new StateMachine();
             var stats = new Statistics();
-            stats.DirtyEvent += () => Console.Title = stats.ToString();
+            stats.DirtyEvent += () => stats_Dirty(stats);
 
             var aggregator = new StatisticsAggregator(stats);
             var listener = new EventListener();
