@@ -13,32 +13,32 @@ namespace PoGo.NecroBot.UI
 {
     public class EventListener
     {
-        public void HandleEvent(ProfileEvent evt, Context ctx)
+        public void HandleEvent(ProfileEvent evt, Session session)
         {
             Logger.Write($"Playing as {evt.Profile.PlayerData.Username ?? ""}");
         }
 
-        public void HandleEvent(ErrorEvent evt, Context ctx)
+        public void HandleEvent(ErrorEvent evt, Session session)
         {
             Logger.Write(evt.ToString(), LogLevel.Error);
         }
 
-        public void HandleEvent(NoticeEvent evt, Context ctx)
+        public void HandleEvent(NoticeEvent evt, Session session)
         {
             Logger.Write(evt.ToString());
         }
 
-        public void HandleEvent(WarnEvent evt, Context ctx)
+        public void HandleEvent(WarnEvent evt, Session session)
         {
             Logger.Write(evt.ToString(), LogLevel.Warning);
         }
 
-        public void HandleEvent(UseLuckyEggEvent evt, Context ctx)
+        public void HandleEvent(UseLuckyEggEvent evt, Session session)
         {
             Logger.Write($"Used Lucky Egg, remaining: {evt.Count}", LogLevel.Egg);
         }
 
-        public void HandleEvent(PokemonEvolveEvent evt, Context ctx)
+        public void HandleEvent(PokemonEvolveEvent evt, Session session)
         {
             Logger.Write(evt.Result == EvolvePokemonResponse.Types.Result.Success
                 ? $"{evt.Id} successfully for {evt.Exp}xp"
@@ -46,29 +46,29 @@ namespace PoGo.NecroBot.UI
                 LogLevel.Evolve);
         }
 
-        public void HandleEvent(TransferPokemonEvent evt, Context ctx)
+        public void HandleEvent(TransferPokemonEvent evt, Session session)
         {
             Logger.Write(
                 $"{evt.Id}\t- CP: {evt.Cp}  IV: {evt.Perfection.ToString("0.00")}%   [Best CP: {evt.BestCp}  IV: {evt.BestPerfection.ToString("0.00")}%] (Candies: {evt.FamilyCandies}) ",
                 LogLevel.Transfer);
         }
 
-        public void HandleEvent(ItemRecycledEvent evt, Context ctx)
+        public void HandleEvent(ItemRecycledEvent evt, Session session)
         {
             Logger.Write($"{evt.Count}x {evt.Id}", LogLevel.Recycling);
         }
 
-        public void HandleEvent(FortUsedEvent evt, Context ctx)
+        public void HandleEvent(FortUsedEvent evt, Session session)
         {
             Logger.Write($"XP: {evt.Exp}, Gems: {evt.Gems}, Items: {evt.Items}", LogLevel.Pokestop);
         }
 
-        public void HandleEvent(FortTargetEvent evt, Context ctx)
+        public void HandleEvent(FortTargetEvent evt, Session session)
         {
             Logger.Write($"{evt.Name} in ({Math.Round(evt.Distance)}m)", LogLevel.Info, ConsoleColor.DarkRed);
         }
 
-        public void HandleEvent(PokemonCaptureEvent evt, Context ctx)
+        public void HandleEvent(PokemonCaptureEvent evt, Session session)
         {
             Func<ItemId, string> returnRealBallName = a =>
             {
@@ -100,21 +100,21 @@ namespace PoGo.NecroBot.UI
                 LogLevel.Caught);
         }
 
-        public void HandleEvent(NoPokeballEvent evt, Context ctx)
+        public void HandleEvent(NoPokeballEvent evt, Session session)
         {
             Logger.Write($"No Pokeballs - We missed a {evt.Id} with CP {evt.Cp}", LogLevel.Caught);
         }
 
-        public void HandleEvent(UseBerryEvent evt, Context ctx)
+        public void HandleEvent(UseBerryEvent evt, Session session)
         {
             Logger.Write($"Used, remaining: {evt.Count}", LogLevel.Berry);
         }
 
-        public void Listen(IEvent evt, Context ctx)
+        public void Listen(IEvent evt, Session session)
         {
             dynamic eve = evt;
 
-            HandleEvent(eve, ctx);
+            HandleEvent(eve, session);
         }
     }
 }

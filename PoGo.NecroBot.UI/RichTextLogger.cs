@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using PoGo.NecroBot.Logic.Logging;
+using PoGo.NecroBot.Logic.State;
 
 namespace PoGo.NecroBot.UI
 {
@@ -86,6 +87,11 @@ namespace PoGo.NecroBot.UI
                 _richTextBox.SelectionStart = selStart;
                 _richTextBox.SelectionLength = selLength;
             }
+        }
+
+        public void SetContext(Session session)
+        {
+            // ignored
         }
     }
 

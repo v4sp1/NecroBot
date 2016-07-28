@@ -11,7 +11,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Google.Apis.Logging;
+using PoGo.NecroBot.CLI;
 using PoGo.NecroBot.Logic;
+using PoGo.NecroBot.Logic.Event;
 using PoGo.NecroBot.Logic.Logging;
 using PoGo.NecroBot.Logic.State;
 using PoGo.NecroBot.Logic.Utils;
@@ -70,29 +73,113 @@ namespace PoGo.NecroBot.UI
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            Logger.SetLogger(new RichTextLogger(rtfLog, LogLevel.Info));
+            //Logger.SetLogger(new RichTextLogger(rtfLog, LogLevel.Info));
+
+            //var machine = new StateMachine();
+            //var stats = new Statistics();
+            //// TODO: Only update the UI elements that need it (but need more fine-grained events than just DirtyEvent then)
+            //stats.DirtyEvent += () => stats_Dirty(stats);
+
+            //var aggregator = new StatisticsAggregator(stats);
+            //var listener = new EventListener();
+
+            //machine.EventListener += listener.Listen;
+            //machine.EventListener += aggregator.Listen;
+
+            //machine.SetFailureState(new LoginState());
+
+            //SettingsUtil.Load();
+
+            //var session = new Session(new ClientSettings(settings), new LogicSettings(settings));
+            //context.Client.Login.GoogleDeviceCodeEvent += LoginWithGoogle;
+
+            //webBrowser.DocumentText = Properties.Resources.map;
+
+            //machine.AsyncStart(new VersionCheckState(), context);
+
+
+
+
+
+
+            var subPath = "";
+            var args = Environment.GetCommandLineArgs();
+            if (args.Length > 0)
+                subPath = args[0];
+
+            Logger.SetLogger(new RichTextLogger(rtfLog, LogLevel.Info), subPath);
+
+            var settings = GlobalSettings.Load(subPath);
+
+            if (settings == null)
+            {
+                Logger.Write("This is your first start and the bot will use the default config!", LogLevel.Warning);
+                Logger.Write("Continue? (y/n)", LogLevel.Warning);
+
+                if (!Console.ReadLine().ToUpper().Equals("Y"))
+                    return;
+                settings = GlobalSettings.Load(subPath);
+            }
+
+            var session = new Session(new ClientSettings(settings), new LogicSettings(settings));
+
+            /*SimpleSession session = new SimpleSession
+            {
+                _client = new PokemonGo.RocketAPI.Client(new ClientSettings(settings)),
+                _dispatcher = new EventDispatcher(),
+                _localizer = new Localizer()
+            };
+
+            BotService service = new BotService
+            {
+                _session = session,
+                _loginTask = new Login(session)
+            };
+
+            service.Run();
+            */
 
             var machine = new StateMachine();
             var stats = new Statistics();
-            // TODO: Only update the UI elements that need it (but need more fine-grained events than just DirtyEvent then)
-            stats.DirtyEvent += () => stats_Dirty(stats);
+            stats.DirtyEvent += () => Console.Title = stats.ToString();
 
             var aggregator = new StatisticsAggregator(stats);
             var listener = new EventListener();
+            var websocket = new WebSocketInterface(settings.WebSocketPort);
 
-            machine.EventListener += listener.Listen;
-            machine.EventListener += aggregator.Listen;
+            session.EventDispatcher.EventReceived += (evt) => listener.Listen(evt, session);
+            session.EventDispatcher.EventReceived += (evt) => aggregator.Listen(evt, session);
+            session.EventDispatcher.EventReceived += (evt) => websocket.Listen(evt, session);
 
             machine.SetFailureState(new LoginState());
 
-            SettingsUtil.Load();
+            Logger.SetLoggerContext(session);
 
-            var context = new Context(new ClientSettings(), new LogicSettings());
-            context.Client.Login.GoogleDeviceCodeEvent += LoginWithGoogle;
+            session.Navigation.UpdatePositionEvent +=
+                (lat, lng) => session.EventDispatcher.Send(new UpdatePositionEvent { Latitude = lat, Longitude = lng });
 
-            webBrowser.DocumentText = Properties.Resources.map;
+            session.Client.Login.GoogleDeviceCodeEvent += (usercode, uri) =>
+            {
+                try
+                {
+                    Logger.Write(session.Translations.GetTranslation(Logic.Common.TranslationString.OpeningGoogleDevicePage), LogLevel.Warning);
+                    Thread.Sleep(5000);
+                    Process.Start(uri);
+                    var thread = new Thread(() => Clipboard.SetText(usercode)); //Copy device code
+                    thread.SetApartmentState(ApartmentState.STA); //Set the thread to STA
+                    thread.Start();
+                    thread.Join();
+                }
+                catch (Exception)
+                {
+                    Logger.Write(session.Translations.GetTranslation(Logic.Common.TranslationString.CouldntCopyToClipboard), LogLevel.Error);
+                    Logger.Write(session.Translations.GetTranslation(Logic.Common.TranslationString.CouldntCopyToClipboard2, uri, usercode), LogLevel.Error);
+                }
+            };
 
-            machine.AsyncStart(new VersionCheckState(), context);
+            machine.AsyncStart(new VersionCheckState(), session);
+
+            Console.ReadLine();
         }
 
         private void rtfLog_LinkClicked(object sender, LinkClickedEventArgs e)
